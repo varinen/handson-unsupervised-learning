@@ -141,7 +141,7 @@
     \def\gt{>}
     \def\lt{<}
     % Document parameters
-    \title{Chap03}
+    \title{Chap04}
     
     
     
@@ -280,12 +280,33 @@
     
 
     
+    \section{Anomaly detection}\label{anomaly-detection}
+
+In this chapter, we will use dimensionality reduction algorithm for the
+task of anomaly detection. We will develop an anomaly detection solution
+for the task of capturing fraud in a credit card transaction dataset.
+
+When we use supervised learning to solve this problem, we rely upon
+provided labels that allow the learning algorithm to distinguish between
+genuine and fraudulent transactions. With time, however, fraud patterns
+change and the algorithm has to be constantly retrained to capture new
+fraud trends. For this reason, using a non-supervised learning algorithm
+for fraud detection is very popular.
+
+\subsubsection{Prepare the data}\label{prepare-the-data}
+
+The credit card dataset contains 284804 transactions, of which 492 are
+fraudulent. We will not use labels to train the algorithm, instead, we
+will evaluate the algorithm using known labels. We split the dataset
+into a training and a test set using a balanced split.
+
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}1}]:} \PY{c+c1}{\PYZsh{} Import libraries}
+{\color{incolor}In [{\color{incolor}1}]:} \PY{c+c1}{\PYZsh{} Required imports}
         \PY{l+s+sd}{\PYZsq{}\PYZsq{}\PYZsq{}Main\PYZsq{}\PYZsq{}\PYZsq{}}
         \PY{k+kn}{import} \PY{n+nn}{numpy} \PY{k}{as} \PY{n+nn}{np}
         \PY{k+kn}{import} \PY{n+nn}{pandas} \PY{k}{as} \PY{n+nn}{pd}
-        \PY{k+kn}{import} \PY{n+nn}{os}\PY{o}{,} \PY{n+nn}{time}\PY{o}{,} \PY{n+nn}{pickle}\PY{o}{,} \PY{n+nn}{gzip}
+        \PY{k+kn}{import} \PY{n+nn}{os}\PY{o}{,} \PY{n+nn}{time}
+        \PY{k+kn}{import} \PY{n+nn}{pickle}\PY{o}{,} \PY{n+nn}{gzip}
         
         \PY{l+s+sd}{\PYZsq{}\PYZsq{}\PYZsq{}Data Viz\PYZsq{}\PYZsq{}\PYZsq{}}
         \PY{k+kn}{import} \PY{n+nn}{matplotlib}\PY{n+nn}{.}\PY{n+nn}{pyplot} \PY{k}{as} \PY{n+nn}{plt}
@@ -294,377 +315,442 @@
         \PY{k+kn}{import} \PY{n+nn}{matplotlib} \PY{k}{as} \PY{n+nn}{mpl}
         
         \PY{o}{\PYZpc{}}\PY{k}{matplotlib} inline
-\end{Verbatim}
-
-
-    \subsection{The MNIST Digist Database}\label{the-mnist-digist-database}
-
-The dataset we use in this project is the dataset of handwritten digits.
-It is taken as a pickle file. The dataset consists of 70 thousands
-observations. Each entry is a 28 by 28 pixel image represented by a
-784-dimensional vector.
-
-The dataset is split into 50000 trining elements, 10000 validation and
-10000 test observations.
-
-The labels for the objservations are between 0 and 9, i.e., there are 10
-classes.
-
-Each feature component (pixel) is a float value between 0.0 and 1.0 that
-is the intensity of the pixel, 0.0 is black, 1.0 is white.
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}2}]:} \PY{n}{current\PYZus{}path} \PY{o}{=} \PY{n}{os}\PY{o}{.}\PY{n}{getcwd}\PY{p}{(}\PY{p}{)}
-        \PY{n}{file} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{datasets}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{mnist\PYZus{}data}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{mnist.pkl.gz}\PY{l+s+s1}{\PYZsq{}}
         
-        \PY{k}{with} \PY{n}{gzip}\PY{o}{.}\PY{n}{open}\PY{p}{(}\PY{n}{current\PYZus{}path} \PY{o}{+} \PY{n}{file}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{rb}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)} \PY{k}{as} \PY{n}{f}\PY{p}{:}
-            \PY{n}{train\PYZus{}set}\PY{p}{,} \PY{n}{validation\PYZus{}set}\PY{p}{,} \PY{n}{test\PYZus{}set} \PY{o}{=} \PY{n}{pickle}\PY{o}{.}\PY{n}{load}\PY{p}{(}\PY{n}{f}\PY{p}{,} \PY{n}{encoding}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{latin1}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-        
-        
-        \PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{y\PYZus{}train} \PY{o}{=} \PY{n}{train\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{,} \PY{n}{train\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}
-        \PY{n}{X\PYZus{}validation}\PY{p}{,} \PY{n}{y\PYZus{}validation} \PY{o}{=} \PY{n}{validation\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{,} \PY{n}{validation\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}
-        \PY{n}{X\PYZus{}test}\PY{p}{,} \PY{n}{y\PYZus{}test} \PY{o}{=} \PY{n}{test\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{,} \PY{n}{test\PYZus{}set}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}
+        \PY{l+s+sd}{\PYZsq{}\PYZsq{}\PYZsq{}Data Prep and Model Evaluation\PYZsq{}\PYZsq{}\PYZsq{}}
+        \PY{k+kn}{from} \PY{n+nn}{sklearn} \PY{k}{import} \PY{n}{preprocessing} \PY{k}{as} \PY{n}{pp}
+        \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{model\PYZus{}selection} \PY{k}{import} \PY{n}{train\PYZus{}test\PYZus{}split} 
+        \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{metrics} \PY{k}{import} \PY{n}{precision\PYZus{}recall\PYZus{}curve}\PY{p}{,} \PY{n}{average\PYZus{}precision\PYZus{}score}
+        \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{metrics} \PY{k}{import} \PY{n}{roc\PYZus{}curve}\PY{p}{,} \PY{n}{auc}\PY{p}{,} \PY{n}{roc\PYZus{}auc\PYZus{}score}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}3}]:} \PY{c+c1}{\PYZsh{} Verify shape of datasets}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of X\PYZus{}train: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of y\PYZus{}train: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of X\PYZus{}validation: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{X\PYZus{}validation}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of y\PYZus{}validation: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y\PYZus{}validation}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of X\PYZus{}test: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Shape of y\PYZus{}test: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y\PYZus{}test}\PY{o}{.}\PY{n}{shape}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-Shape of X\_train:  (50000, 784)
-Shape of y\_train:  (50000,)
-Shape of X\_validation:  (10000, 784)
-Shape of y\_validation:  (10000,)
-Shape of X\_test:  (10000, 784)
-Shape of y\_test:  (10000,)
-
-    \end{Verbatim}
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}4}]:} \PY{n}{train\PYZus{}index} \PY{o}{=} \PY{n+nb}{range}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{p}{)}
-        \PY{n}{validation\PYZus{}index} \PY{o}{=} \PY{n+nb}{range}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{p}{,} \PYZbs{}
-                                 \PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{o}{+}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}\PY{p}{)}
-        \PY{n}{test\PYZus{}index} \PY{o}{=} \PY{n+nb}{range}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{o}{+}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}\PY{p}{,} \PYZbs{}
-                           \PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{o}{+}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}\PY{o}{+}\PY{n+nb}{len}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{)}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{f}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Train index: }\PY{l+s+si}{\PYZob{}train\PYZus{}index\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{f}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Validation index: }\PY{l+s+si}{\PYZob{}validation\PYZus{}index\PYZcb{}}\PY{l+s+s1}{\PYZsq{}} \PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{f}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Test index: }\PY{l+s+si}{\PYZob{}test\PYZus{}index\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-Train index: range(0, 50000)
-Validation index: range(50000, 60000)
-Test index: range(60000, 70000)
-
-    \end{Verbatim}
-
-    In this step we create \texttt{pandas} DataFrames out of \texttt{numpy}
-arrays with index values that we set up before. The labels are converted
-into \texttt{pandas} Series:
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}5}]:} \PY{n}{type\PYZus{}x\PYZus{}train\PYZus{}orig} \PY{o}{=} \PY{n+nb}{type}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-        \PY{n}{type\PYZus{}y\PYZus{}train\PYZus{}orig} \PY{o}{=} \PY{n+nb}{type}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{type\PYZus{}x\PYZus{}train\PYZus{}orig}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{type\PYZus{}y\PYZus{}train\PYZus{}orig}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-<class 'numpy.ndarray'>
-<class 'numpy.ndarray'>
-
-    \end{Verbatim}
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}6}]:} \PY{n}{X\PYZus{}train} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-        \PY{n}{y\PYZus{}train} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{Series}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{y\PYZus{}train}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}3}]:} \PY{c+c1}{\PYZsh{} Load datasets}
+        \PY{n}{current\PYZus{}path} \PY{o}{=} \PY{n}{os}\PY{o}{.}\PY{n}{getcwd}\PY{p}{(}\PY{p}{)}
+        \PY{n}{file} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{datasets}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{credit\PYZus{}card\PYZus{}data}\PY{l+s+se}{\PYZbs{}\PYZbs{}}\PY{l+s+s1}{credit\PYZus{}card.csv}\PY{l+s+s1}{\PYZsq{}}
+        \PY{n}{data} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{read\PYZus{}csv}\PY{p}{(}\PY{n}{current\PYZus{}path} \PY{o}{+} \PY{n}{file}\PY{p}{)}
         
-        \PY{n+nb}{print}\PY{p}{(}\PY{n+nb}{type}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{)}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n+nb}{type}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}\PY{p}{)}
-        \PY{n+nb}{print}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+        \PY{n}{dataX} \PY{o}{=} \PY{n}{data}\PY{o}{.}\PY{n}{copy}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{drop}\PY{p}{(}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Class}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+        \PY{n}{dataY} \PY{o}{=} \PY{n}{data}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Class}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{o}{.}\PY{n}{copy}\PY{p}{(}\PY{p}{)}
+        
+        \PY{n}{featuresToScale} \PY{o}{=} \PY{n}{dataX}\PY{o}{.}\PY{n}{columns}
+        \PY{n}{sX} \PY{o}{=} \PY{n}{pp}\PY{o}{.}\PY{n}{StandardScaler}\PY{p}{(}\PY{n}{copy}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+        \PY{n}{dataX}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{n}{featuresToScale}\PY{p}{]} \PY{o}{=} \PY{n}{sX}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{dataX}\PY{p}{[}\PY{n}{featuresToScale}\PY{p}{]}\PY{p}{)}
+        
+        \PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}test}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{y\PYZus{}test} \PY{o}{=} \PYZbs{}
+            \PY{n}{train\PYZus{}test\PYZus{}split}\PY{p}{(}\PY{n}{dataX}\PY{p}{,} \PY{n}{dataY}\PY{p}{,} \PY{n}{test\PYZus{}size}\PY{o}{=}\PY{l+m+mf}{0.33}\PY{p}{,} \PYZbs{}
+                            \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{l+m+mi}{2018}\PY{p}{,} \PY{n}{stratify}\PY{o}{=}\PY{n}{dataY}\PY{p}{)}
 \end{Verbatim}
 
+
+    \subsubsection{Define Anomaly Score
+Function}\label{define-anomaly-score-function}
+
+Using anomaly detection to capture fraud means that we consider the
+fraudulent transaction to be anomalies. That is, the more anomalous the
+transaction is, the more likely it is fraudulent.
+
+Dimensionality reduction algorithms reduce dimensions of the data while
+trying to minimize the reconstruction error. They identify the most
+salient features and keep them while discarding the less important
+features. We can expect that anomalous entries will suffer the most when
+the data is reconstructed. This means we can use the reconstruction
+error as the score function for the anomaly detection.
+
+The reconstruction error is the sum of the squared differences between
+the original feature matrix and the matrix reconstructed by a
+dimensionality reduction algorithm. We will scale the sum of squared
+differences by the max-min range of the sum of the squared differences
+for the entire dataset so that the reconstruction error is in the range
+between 0 and 1.
+
+The scoring function is then:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-<class 'pandas.core.series.Series'>
-<class 'pandas.core.frame.DataFrame'>
-RangeIndex(start=0, stop=50000, step=1)
+{\color{incolor}In [{\color{incolor}4}]:} \PY{k}{def} \PY{n+nf}{anomalyScores}\PY{p}{(}\PY{n}{originalDF}\PY{p}{,} \PY{n}{reducedDF}\PY{p}{)}\PY{p}{:}
+            \PY{n}{loss} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{originalDF}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{reducedDF}\PY{p}{)}\PY{p}{)}\PY{o}{*}\PY{o}{*}\PY{l+m+mi}{2}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+            \PY{n}{loss} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{Series}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{loss}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{originalDF}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+            \PY{n}{loss} \PY{o}{=} \PY{p}{(}\PY{n}{loss}\PY{o}{\PYZhy{}}\PY{n}{np}\PY{o}{.}\PY{n}{min}\PY{p}{(}\PY{n}{loss}\PY{p}{)}\PY{p}{)}\PY{o}{/}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{loss}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{n}{np}\PY{o}{.}\PY{n}{min}\PY{p}{(}\PY{n}{loss}\PY{p}{)}\PY{p}{)}
+            \PY{k}{return} \PY{n}{loss}
+\end{Verbatim}
 
-    \end{Verbatim}
+
+    \subsubsection{Define Evaluation}\label{define-evaluation}
+
+As mentioned before, we will not use the available labels for the
+training. Instead, we will use them for the evaluation. The metrics we
+will employ are the \textbf{precision-recall curve}, the \textbf{average
+precision}, and the \textbf{auROC}.
+
+To plot the results, we will use this function:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}7}]:} \PY{n}{X\PYZus{}validation} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-        \PY{n}{y\PYZus{}validation} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{Series}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{y\PYZus{}validation}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-        
-        \PY{n}{X\PYZus{}test} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{test\PYZus{}index}\PY{p}{)}
-        \PY{n}{y\PYZus{}test} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{Series}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{y\PYZus{}test}\PY{p}{,}\PY{n}{index}\PY{o}{=}\PY{n}{test\PYZus{}index}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}8}]:} \PY{c+c1}{\PYZsh{} Describe the training matrix}
-        \PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{describe}\PY{p}{(}\PY{p}{)}
-\end{Verbatim}
-
-
-\begin{Verbatim}[commandchars=\\\{\}]
-{\color{outcolor}Out[{\color{outcolor}8}]:}            0        1        2        3        4        5        6        7    \textbackslash{}
-        count  50000.0  50000.0  50000.0  50000.0  50000.0  50000.0  50000.0  50000.0   
-        mean       0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        std        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        min        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        25\%        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        50\%        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        75\%        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        max        0.0      0.0      0.0      0.0      0.0      0.0      0.0      0.0   
-        
-                   8        9     {\ldots}              774           775           776  \textbackslash{}
-        count  50000.0  50000.0   {\ldots}     50000.000000  50000.000000  50000.000000   
-        mean       0.0      0.0   {\ldots}         0.000739      0.000354      0.000204   
-        std        0.0      0.0   {\ldots}         0.022778      0.015422      0.012079   
-        min        0.0      0.0   {\ldots}         0.000000      0.000000      0.000000   
-        25\%        0.0      0.0   {\ldots}         0.000000      0.000000      0.000000   
-        50\%        0.0      0.0   {\ldots}         0.000000      0.000000      0.000000   
-        75\%        0.0      0.0   {\ldots}         0.000000      0.000000      0.000000   
-        max        0.0      0.0   {\ldots}         0.992188      0.992188      0.988281   
-        
-                        777           778           779      780      781      782  \textbackslash{}
-        count  50000.000000  50000.000000  50000.000000  50000.0  50000.0  50000.0   
-        mean       0.000090      0.000071      0.000009      0.0      0.0      0.0   
-        std        0.007217      0.007181      0.001483      0.0      0.0      0.0   
-        min        0.000000      0.000000      0.000000      0.0      0.0      0.0   
-        25\%        0.000000      0.000000      0.000000      0.0      0.0      0.0   
-        50\%        0.000000      0.000000      0.000000      0.0      0.0      0.0   
-        75\%        0.000000      0.000000      0.000000      0.0      0.0      0.0   
-        max        0.988281      0.992188      0.242188      0.0      0.0      0.0   
-        
-                   783  
-        count  50000.0  
-        mean       0.0  
-        std        0.0  
-        min        0.0  
-        25\%        0.0  
-        50\%        0.0  
-        75\%        0.0  
-        max        0.0  
-        
-        [8 rows x 784 columns]
-\end{Verbatim}
+{\color{incolor}In [{\color{incolor}5}]:} \PY{k}{def} \PY{n+nf}{plotResults}\PY{p}{(}\PY{n}{trueLabels}\PY{p}{,} \PY{n}{anomalyScores}\PY{p}{,} \PY{n}{returnPreds} \PY{o}{=} \PY{k+kc}{False}\PY{p}{)}\PY{p}{:}
+            \PY{n}{preds} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{concat}\PY{p}{(}\PY{p}{[}\PY{n}{trueLabels}\PY{p}{,} \PY{n}{anomalyScores}\PY{p}{]}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}
+            \PY{n}{preds}\PY{o}{.}\PY{n}{columns} \PY{o}{=} \PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{trueLabel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{anomalyScore}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}
+            \PY{n}{precision}\PY{p}{,} \PY{n}{recall}\PY{p}{,} \PY{n}{thresholds} \PY{o}{=} \PYZbs{}
+                \PY{n}{precision\PYZus{}recall\PYZus{}curve}\PY{p}{(}\PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{trueLabel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{anomalyScore}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
+            \PY{n}{average\PYZus{}precision} \PY{o}{=} \PYZbs{}
+                \PY{n}{average\PYZus{}precision\PYZus{}score}\PY{p}{(}\PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{trueLabel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,}\PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{anomalyScore}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
             
-    We can see, that the first and the last features are black pixels: their
-mean, min, and max values are all 0.0. That is to be expected. A higher
-value variety can be seen in the middle of the feature list.
-
-Let's output the first labels in the training dataset:
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}9}]:} \PY{n}{y\PYZus{}train}\PY{o}{.}\PY{n}{head}\PY{p}{(}\PY{p}{)}
-\end{Verbatim}
-
-
-\begin{Verbatim}[commandchars=\\\{\}]
-{\color{outcolor}Out[{\color{outcolor}9}]:} 0    5
-        1    0
-        2    4
-        3    1
-        4    9
-        dtype: int64
-\end{Verbatim}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{step}\PY{p}{(}\PY{n}{recall}\PY{p}{,} \PY{n}{precision}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{l+m+mf}{0.7}\PY{p}{,} \PY{n}{where}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{post}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{fill\PYZus{}between}\PY{p}{(}\PY{n}{recall}\PY{p}{,} \PY{n}{precision}\PY{p}{,} \PY{n}{step}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{post}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{l+m+mf}{0.3}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        
+            \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Recall}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Precision}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{ylim}\PY{p}{(}\PY{p}{[}\PY{l+m+mf}{0.0}\PY{p}{,} \PY{l+m+mf}{1.05}\PY{p}{]}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mf}{0.0}\PY{p}{,} \PY{l+m+mf}{1.0}\PY{p}{]}\PY{p}{)}
             
-    We can look at the images on the dataset by plotting their vectors:
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}10}]:} \PY{k}{def} \PY{n+nf}{view\PYZus{}digit}\PY{p}{(}\PY{n}{example}\PY{p}{)}\PY{p}{:}
-             \PY{n}{label} \PY{o}{=} \PY{n}{y\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{n}{example}\PY{p}{]}
-             \PY{n}{image} \PY{o}{=} \PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{n}{example}\PY{p}{,} \PY{p}{:}\PY{p}{]}\PY{o}{.}\PY{n}{values}\PY{o}{.}\PY{n}{reshape}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{28}\PY{p}{,} \PY{l+m+mi}{28}\PY{p}{]}\PY{p}{)}
-             \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{n}{f}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Example: }\PY{l+s+si}{\PYZob{}example\PYZcb{}}\PY{l+s+s1}{ Label: }\PY{l+s+si}{\PYZob{}label\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-             \PY{n}{plt}\PY{o}{.}\PY{n}{imshow}\PY{p}{(}\PY{n}{image}\PY{p}{,} \PY{n}{cmap}\PY{o}{=}\PY{n}{plt}\PY{o}{.}\PY{n}{get\PYZus{}cmap}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{gray}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{)}
-             \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Precision\PYZhy{}Recall curve: Average Precision = }\PY{l+s+se}{\PYZbs{}}
+        \PY{l+s+s1}{    }\PY{l+s+si}{\PYZob{}0:0.2f\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{o}{.}\PY{n}{format}\PY{p}{(}\PY{n}{average\PYZus{}precision}\PY{p}{)}\PY{p}{)}
+        
+            \PY{n}{fpr}\PY{p}{,} \PY{n}{tpr}\PY{p}{,} \PY{n}{thresholds} \PY{o}{=} \PY{n}{roc\PYZus{}curve}\PY{p}{(}\PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{trueLabel}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{,} \PYZbs{}
+                                             \PY{n}{preds}\PY{p}{[}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{anomalyScore}\PY{l+s+s1}{\PYZsq{}}\PY{p}{]}\PY{p}{)}
+            \PY{n}{areaUnderROC} \PY{o}{=} \PY{n}{auc}\PY{p}{(}\PY{n}{fpr}\PY{p}{,} \PY{n}{tpr}\PY{p}{)}
+        
+            \PY{n}{plt}\PY{o}{.}\PY{n}{figure}\PY{p}{(}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{fpr}\PY{p}{,} \PY{n}{tpr}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{r}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{lw}\PY{o}{=}\PY{l+m+mi}{2}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{ROC curve}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,} \PY{p}{[}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{lw}\PY{o}{=}\PY{l+m+mi}{2}\PY{p}{,} \PY{n}{linestyle}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{\PYZhy{}\PYZhy{}}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{p}{[}\PY{l+m+mf}{0.0}\PY{p}{,} \PY{l+m+mf}{1.0}\PY{p}{]}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{ylim}\PY{p}{(}\PY{p}{[}\PY{l+m+mf}{0.0}\PY{p}{,} \PY{l+m+mf}{1.05}\PY{p}{]}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{False Positive Rate}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{True Positive Rate}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{title}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Receiver operating characteristic: }\PY{l+s+se}{\PYZbs{}}
+        \PY{l+s+s1}{    Area under the curve = }\PY{l+s+si}{\PYZob{}0:0.2f\PYZcb{}}\PY{l+s+s1}{\PYZsq{}}\PY{o}{.}\PY{n}{format}\PY{p}{(}\PY{n}{areaUnderROC}\PY{p}{)}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{lower right}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+            \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+            
+            \PY{k}{if} \PY{n}{returnPreds}\PY{o}{==}\PY{k+kc}{True}\PY{p}{:}
+                \PY{k}{return} \PY{n}{preds}
 \end{Verbatim}
 
 
+    \subsubsection{Note on the metrics}\label{note-on-the-metrics}
+
+These metrics will help us to asses how good the unsupervised fraud
+detection systems are at catching \textbf{known} pattern of fraud -
+fraud that we have caught in the past and have labels for.
+
+We will not be able to assess how good the unsupervised learning systems
+are at catching \textbf{unknown} patterns of fraud. In other words, the
+current dataset may have transactions that are fraudulent but have never
+been discovered and are not labeled as a fraud.
+
+Unfortunately, we cannot go to the financial company and ask them to
+evaluate new instances of fraud our unsupervised system might find. This
+shows, how difficult it really is to evaluate unsupervised systems by
+using only already known patterns.
+
+    \subsubsection{Define Plotting Function}\label{define-plotting-function}
+
+This function will generate a scatter plot to display the separation of
+points, the dimensionality reduction algorithms achieve in just two
+dimensions.
+
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}11}]:} \PY{n}{view\PYZus{}digit}\PY{p}{(}\PY{l+m+mi}{4}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}6}]:} \PY{k}{def} \PY{n+nf}{scatterPlot}\PY{p}{(}\PY{n}{xDF}\PY{p}{,} \PY{n}{yDF}\PY{p}{,} \PY{n}{algoName}\PY{p}{)}\PY{p}{:}
+            \PY{n}{tempDF} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{xDF}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{xDF}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+            \PY{n}{tempDF} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{concat}\PY{p}{(}\PY{p}{(}\PY{n}{tempDF}\PY{p}{,}\PY{n}{yDF}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{,} \PY{n}{join}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{inner}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+            \PY{n}{tempDF}\PY{o}{.}\PY{n}{columns} \PY{o}{=} \PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
+            \PY{n}{sns}\PY{o}{.}\PY{n}{lmplot}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{hue}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PYZbs{}
+                       \PY{n}{data}\PY{o}{=}\PY{n}{tempDF}\PY{p}{,} \PY{n}{fit\PYZus{}reg}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
+            \PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}
+            \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}title}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Separation of Observations using }\PY{l+s+s2}{\PYZdq{}}\PY{o}{+}\PY{n}{algoName}\PY{p}{)}
+\end{Verbatim}
+
+
+    \subsection{Normal PCA Anomaly
+Detection}\label{normal-pca-anomaly-detection}
+
+We have seen, how powerful PCA can be when applied on the MNIST
+handwritten digits dataset. It made it possible to visually separate
+digits by using only two dimensions.
+
+Now, we will let PCA learn the underlying structure of the credit card
+transactions dataset. We remember that the available dataset has already
+been processed by a PCA algorithm. However, it is not unusual to perform
+a PCA on already dimensionally-reduced datasets.
+
+When designing an anomaly detection system using a
+dimensionality-reduction algorithm, we must keep in mind that the goal
+is to have the highest reconstruction error for dataset entries that are
+anomalous, i.e. fraudulent. The genuine transactions have to have the
+reconstruction error as low as possible.
+
+For PCA the reconstruction error depends on how many dimensions we are
+going to keep. The lowest error will be when all dimensions are kept.
+But in this case, we may not be able to distinguish fraud. If we keep to
+few dimensions, the PCA might not be able to reconstruct the dataset
+well enough and again the hight reconstruction error across the entire
+dataset will not allow us to see what transactions are fraudulent. We
+will have to find an optimum number of dimensions.
+
+To demonstrate this point, we first try to apply PCA while keeping all
+30 features.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}7}]:} \PY{c+c1}{\PYZsh{} 30 principal components}
+        \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{PCA}
+        
+        \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{30}
+        \PY{n}{whiten} \PY{o}{=} \PY{k+kc}{False}
+        \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
+        
+        \PY{n}{pca} \PY{o}{=} \PY{n}{PCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{whiten}\PY{o}{=}\PY{n}{whiten}\PY{p}{,} \PYZbs{}
+                  \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+        
+        \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+        \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+        
+        \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{)}
+        \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                           \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+        
+        \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_14_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_11_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Dimensionality Reduction
-Algorithms}\label{dimensionality-reduction-algorithms}
-
-The dimensionality reduction algorithms can be divided into tw main
-groups: \textbf{linear projection} and \textbf{manifold learning} (or
-\textbf{nonlinear dimensionality reduction}).
-
-Examples of the first group are \textbf{priciple component analysis}
-(PCA), \textbf{singular value decomposition} (SVD), and \textbf{random
-projections}.
-
-Examples of the second group include: - \textbf{isomap}: this technique
-learns curved (or geodesic) distance between points rather than the
-Euclidean distance. - \textbf{multidimensional scaling} (MDS) -
-\textbf{local linear embeddings} - \textbf{t-distributed stochastic
-neighbor embedding} (t-SNE) - \textbf{dictionary learning} -
-\textbf{random trees embedding} - \textbf{independent component
-analysis}
-
-    \subsubsection{PCA}\label{pca}
-
-We first expore several versions of PCA: standard, incremental, sparse,
-and kernel.
-
-The goal of PCA is to reduce the number of features (dimensions) while
-retaining as much variation (salient information) as possible.
-
-This is done by finding groups of correlated features. They are combined
-so that a lower number of linearly uuncorrelated features are created.
-The process involves projecting higher dimensional data into lower
-dimensional space.
-
-It is possible to reconstruct the original features from the reduced
-versions, although not completely.
-
-The reduced features are called \emph{principal components}.
-
-The MNIST dataset has 784 features. We will try to reduce this number by
-applying PCA. Although some information will be lost, the remaining will
-still represent the original data close enough. In the same time, the
-lower number of features will allow us to perform clustering and anomaly
-detection much more effective.
-
-\paragraph{Feature Scaling}\label{feature-scaling}
-
-Feature scaling is essential for the correct work of PCA algorithms that
-are very sensitive to the original features' ranges. In the MNIST
-dataset all features are already in the same range of 0.0 to 1.0, so we
-can skip this step.
-
-\subsubsection{Apply PCA}\label{apply-pca}
-
-We import \texttt{PCA} and set up the hyper parameters. The parameter
-\texttt{whiten} is explained in the PCA docs:
-https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+    Now, let's calculate the precision-recall curve and ROC:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}12}]:} \PY{c+c1}{\PYZsh{} Principal Component Analysis}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{PCA}
+{\color{incolor}In [{\color{incolor}8}]:} \PY{n}{anomalyScoresPCA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse}\PY{p}{)}
+        \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresPCA}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_13_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_13_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    With an average precision of 0.08, this is a very poor solution for
+fraud detection.
+
+\subsubsection{Search for the Optimal Number of Principal
+Components}\label{search-for-the-optimal-number-of-principal-components}
+
+Let's reduce the number of principal components and evaluate the
+results. We do not want the situation when the error is to low or too
+high so that the rare and the normal transaction are indistinguishable.
+
+We can experiment with different numbers of principal components. It
+appears that 27 perform the best:
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}9}]:} \PY{c+c1}{\PYZsh{} 27 principal components}
+        \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{PCA}
+        
+        \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+        \PY{n}{whiten} \PY{o}{=} \PY{k+kc}{False}
+        \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
+        
+        \PY{n}{pca} \PY{o}{=} \PY{n}{PCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{whiten}\PY{o}{=}\PY{n}{whiten}\PY{p}{,} \PYZbs{}
+                  \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+        
+        \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+        \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+        
+        \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{)}
+        \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                           \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+        
+        \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_15_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}10}]:} \PY{n}{anomalyScoresPCA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresPCA}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_16_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_16_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    We can see that the system can catch 80\% of fraud with 75\% precision.
+Given that we did not use any labels, this is impressive. Particularly,
+when we recall that we have inspected 190820 transactions of which only
+330 are fraudulent.
+
+The PCA gives us the reconstruction error for each of these 190820
+transactions. If we sort the transaction by their reconstruction error
+(anomaly score) in descending order and cut 350 topmost, we will be able
+to see that 264 of them are actually fraudulent.
+
+This is the precision of 75\%. The 264 caught transaction represent 80\%
+of the true 350 fraudulent entries. This is 80\% recall.
+
+This is the code that does this:
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}32}]:} \PY{n}{preds}\PY{o}{.}\PY{n}{sort\PYZus{}values}\PY{p}{(}\PY{n}{by}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{anomalyScore}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{ascending}\PY{o}{=}\PY{k+kc}{False}\PY{p}{,}\PY{n}{inplace}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+         \PY{n}{cutoff} \PY{o}{=} \PY{l+m+mi}{350}
+         \PY{n}{predsTop} \PY{o}{=} \PY{n}{preds}\PY{p}{[}\PY{p}{:}\PY{n}{cutoff}\PY{p}{]}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Precision: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{np}\PY{o}{.}\PY{n}{round}\PY{p}{(}
+             \PY{n}{predsTop}\PY{o}{.}\PY{n}{anomalyScore}\PY{p}{[}\PY{n}{predsTop}\PY{o}{.}\PY{n}{trueLabel}\PY{o}{==}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{count}\PY{p}{(}\PY{p}{)}\PY{o}{/}\PY{n}{cutoff}\PY{p}{,}\PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{784}
-         \PY{n}{whiten} \PY{o}{=} \PY{k+kc}{False}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Recall: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{np}\PY{o}{.}\PY{n}{round}\PY{p}{(}
+             \PY{n}{predsTop}\PY{o}{.}\PY{n}{anomalyScore}\PY{p}{[}\PY{n}{predsTop}\PY{o}{.}\PY{n}{trueLabel}\PY{o}{==}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{count}\PY{p}{(}\PY{p}{)} \PYZbs{}
+             \PY{o}{/} \PY{n}{y\PYZus{}train}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{p}{)}\PY{p}{,} \PY{l+m+mi}{2}\PY{p}{)}\PY{p}{)}
+         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Fraud Caught out of 350 Cases: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{predsTop}\PY{o}{.}\PY{n}{trueLabel}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{p}{)}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Precision:  0.75
+Recall:  0.8
+Fraud Caught out of 350 Cases:  264
+
+    \end{Verbatim}
+
+    \subsection{Sparse PCA Anomaly
+Detection}\label{sparse-pca-anomaly-detection}
+
+Recall that Sparse PCA delivers a less dense solution than the normal
+PCA. We will need to specify the number of components and the parameter
+\textbf{alpha} that controls the degree of sparsity. We will have to
+experiment with different values of these two parameters for the optimal
+result.
+
+The normal PCA has the \texttt{inverse\_transform} function that
+reconstructs the dataset. The Sparse PCA does not have it, so we will
+have to implement it ourselves.
+
+Let's begin the Sparse PCA with 27 principal components and the default
+alpha value of 0.0001:
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}11}]:} \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{SparsePCA}
+         
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+         \PY{n}{alpha} \PY{o}{=} \PY{l+m+mf}{0.0001}
          \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
+         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}
          
-         \PY{n}{pca} \PY{o}{=} \PY{n}{PCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{whiten}\PY{o}{=}\PY{n}{whiten}\PY{p}{,} \PYZbs{}
-                   \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+         \PY{n}{sparsePCA} \PY{o}{=} \PY{n}{SparsePCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
+                              \PY{n}{alpha}\PY{o}{=}\PY{n}{alpha}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{,} \PYZbs{}
+                              \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{)}
          
-         \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}PCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-\end{Verbatim}
-
-
-    With \texttt{n\_components} set to 784 we do not reduce the
-dimensionality, we only transform the data. Still 100\% of the variance
-must be retained:
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}13}]:} \PY{c+c1}{\PYZsh{} Percentage of Variance Captured by 784 principal components}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Variance Explained by all 784 principal components: }\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PYZbs{}
-               \PY{n+nb}{sum}\PY{p}{(}\PY{n}{pca}\PY{o}{.}\PY{n}{explained\PYZus{}variance\PYZus{}ratio\PYZus{}}\PY{p}{)}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-Variance Explained by all 784 principal components:  0.9999999999999998
-
-    \end{Verbatim}
-
-    This transformation allows us to evaluate the importance of features:
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}14}]:} \PY{c+c1}{\PYZsh{} Percentage of Variance Captured by X principal components}
-         \PY{n}{importanceOfPrincipalComponents} \PY{o}{=} \PYZbs{}
-             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{pca}\PY{o}{.}\PY{n}{explained\PYZus{}variance\PYZus{}ratio\PYZus{}}\PY{p}{)}
+         \PY{n}{sparsePCA}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}sparsePCA} \PY{o}{=} \PY{n}{sparsePCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}sparsePCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}sparsePCA}\PY{p}{,}
+                                         \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         
-         \PY{n}{importanceOfPrincipalComponents} \PY{o}{=} \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{T}
-         
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 10 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{9}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 20 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{19}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 50 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{49}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 100 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{99}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 200 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{199}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-         \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Variance Captured by First 300 Principal Components: }\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}
-               \PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{299}\PY{p}{]}\PY{o}{.}\PY{n}{sum}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{)}\PY{o}{.}\PY{n}{values}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-Variance Captured by First 10 Principal Components:  [0.48876238]
-Variance Captured by First 20 Principal Components:  [0.64398025]
-Variance Captured by First 50 Principal Components:  [0.8248609]
-Variance Captured by First 100 Principal Components:  [0.91465857]
-Variance Captured by First 200 Principal Components:  [0.96650076]
-Variance Captured by First 300 Principal Components:  [0.9862489]
-
-    \end{Verbatim}
-
-    One can see, that with the first 100 most important components we
-already capture 91\% variance and with the first 300 - 98\%.
-
-We can visualize the importance of the first 10 comnponents using this
-chart. The \emph{y} axis represent the proportion of the explained
-variance.
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}15}]:} \PY{n}{sns}\PY{o}{.}\PY{n}{set}\PY{p}{(}\PY{n}{rc}\PY{o}{=}\PY{p}{\PYZob{}}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{figure.figsize}\PY{l+s+s1}{\PYZsq{}}\PY{p}{:}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{10}\PY{p}{)}\PY{p}{\PYZcb{}}\PY{p}{)}
-         \PY{n}{sns}\PY{o}{.}\PY{n}{barplot}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{importanceOfPrincipalComponents}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{9}\PY{p}{]}\PY{p}{,}\PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}\PY{p}{;}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}sparsePCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Sparse PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_23_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_20_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    Lets try mapping our dataset using two dimensions provided by the first
-two most important components.
+    Below you will see the code that reconstructs the reduced dataset to the
+original features by matrix multiplication: the sparse PCA matrix
+(\(190820 \times 27\)) and the sparse PCA components (\(27 \times 30\)).
+We then add to the restored features their respective mean.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}16}]:} \PY{k}{def} \PY{n+nf}{scatterPlot}\PY{p}{(}\PY{n}{xDF}\PY{p}{,} \PY{n}{yDF}\PY{p}{,} \PY{n}{algoName}\PY{p}{)}\PY{p}{:}
-             \PY{c+c1}{\PYZsh{} take othe first two columns only}
-             \PY{n}{tempDF} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{xDF}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{xDF}\PY{o}{.}\PY{n}{index}\PY{p}{)}
-             
-             \PY{c+c1}{\PYZsh{} join the labels}
-             \PY{n}{tempDF} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{concat}\PY{p}{(}\PY{p}{(}\PY{n}{tempDF}\PY{p}{,}\PY{n}{yDF}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{,} \PY{n}{join}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{inner}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
-             \PY{n}{tempDF}\PY{o}{.}\PY{n}{columns} \PY{o}{=} \PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
-             
-             \PY{n}{sns}\PY{o}{.}\PY{n}{lmplot}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{hue}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PYZbs{}
-                        \PY{n}{data}\PY{o}{=}\PY{n}{tempDF}\PY{p}{,} \PY{n}{fit\PYZus{}reg}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
-             \PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}
-             \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}title}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Separation of Observations using }\PY{l+s+s2}{\PYZdq{}}\PY{o}{+}\PY{n}{algoName}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}12}]:} \PY{n}{X\PYZus{}train\PYZus{}sparsePCA\PYZus{}inverse} \PY{o}{=} \PYZbs{}
+         \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}sparsePCA}\PY{p}{)}\PY{o}{.}\PY{n}{dot}\PY{p}{(}\PY{n}{sparsePCA}\PY{o}{.}\PY{n}{components\PYZus{}}\PY{p}{)} \PYZbs{}
+         \PY{o}{+} \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{)}
+         
+         \PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}PCA\PYZus{}inverse}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+         
+         \PY{n}{anomalyScoresSparsePCA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}sparsePCA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresSparsePCA}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_22_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_22_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    The results are identical to those of the normal PCA. This is expected
+because normal and sparse PCA are very similar - the latter is just a
+sparse representation of the former.
+
+    \subsection{Kernel PCA Anomaly
+Detection}\label{kernel-pca-anomaly-detection}
+
+We can use a non-linear dimensionality reduction with kernel PCA. This
+can be useful if the fraudulent cases are not linearly separable from
+the genuine ones.
+
+We will need to specify the number of components, the kernel (in our
+case, 'rbf'), and the gamma (which is set to \(\frac{1}{n\_features}\)
+by default, or, in our case, 1/30). We will need to set
+\texttt{fit\_inverse\_transform} to \texttt{true} to apply the built-in
+inverse transform function.
+
+Kernel PCA is expensive to train, so we will train on just the first 200
+samples.
+
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}17}]:} \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}13}]:} \PY{c+c1}{\PYZsh{} Kernel PCA}
+         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{KernelPCA}
+         
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+         \PY{n}{kernel} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{rbf}\PY{l+s+s1}{\PYZsq{}}
+         \PY{n}{gamma} \PY{o}{=} \PY{k+kc}{None}
+         \PY{n}{fit\PYZus{}inverse\PYZus{}transform} \PY{o}{=} \PY{k+kc}{True}
+         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
+         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{l+m+mi}{1}
+         
+         \PY{n}{kernelPCA} \PY{o}{=} \PY{n}{KernelPCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{kernel}\PY{o}{=}\PY{n}{kernel}\PY{p}{,} \PYZbs{}
+                         \PY{n}{gamma}\PY{o}{=}\PY{n}{gamma}\PY{p}{,} \PY{n}{fit\PYZus{}inverse\PYZus{}transform}\PY{o}{=} \PYZbs{}
+                         \PY{n}{fit\PYZus{}inverse\PYZus{}transform}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{,} \PYZbs{}
+                         \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+         
+         \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{iloc}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{200}\PY{p}{]}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA}\PY{p}{,} \PYZbs{}
+                                          \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+         
+         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA\PYZus{}inverse} \PY{o}{=} \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                                  \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+         
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Kernel PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_25_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}14}]:} \PY{n}{anomalyScoresKernelPCA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}kernelPCA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresKernelPCA}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -673,21 +759,46 @@ two most important components.
     \end{center}
     { \hspace*{\fill} \\}
     
-    We can see that the fist two components do quite a good job separating
-the labels. This separation is learned without using the original
-labels. This is the power of PCA.
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_26_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    As we can see, the results provided by kernel PCA are far worse than
+those from normal and sparse PCA. It is useful to experiment with
+different algorithms, but we will not use kernel PCA for the final fraud
+detection solution.
 
-We can compare this graph with a similar one created out of the
-originial, non-PCA-transformed data. We take two features representing
-pixels in the center of the image:
+\subsection{Gaussian Random Projection Anomaly
+Detection}\label{gaussian-random-projection-anomaly-detection}
+
+Now, let's try to implement anomaly detection with Gaussian random
+projection. Here, we will have to either set the desired number of
+components or use the \emph{eps} parameter that controls the quality of
+the embedding.
+
+For now, we choose to set the number of components explicitly. Gaussian
+random projections train quickly, so we can train on the entire training
+set.
+
+As with sparse PCA, we will have to derive our own inverse
+transformation function.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}18}]:} \PY{n}{X\PYZus{}train\PYZus{}scatter} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{p}{[}\PY{l+m+mi}{350}\PY{p}{,}\PY{l+m+mi}{406}\PY{p}{]}\PY{p}{]}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}scatter} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{concat}\PY{p}{(}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}scatter}\PY{p}{,}\PY{n}{y\PYZus{}train}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{1}\PY{p}{,} \PY{n}{join}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{inner}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}scatter}\PY{o}{.}\PY{n}{columns} \PY{o}{=} \PY{p}{[}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{]}
-         \PY{n}{sns}\PY{o}{.}\PY{n}{lmplot}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{First Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Second Vector}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{hue}\PY{o}{=}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Label}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}scatter}\PY{p}{,} \PY{n}{fit\PYZus{}reg}\PY{o}{=}\PY{k+kc}{False}\PY{p}{)}
-         \PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{gca}\PY{p}{(}\PY{p}{)}
-         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}title}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Separation of Observations Using Original Feature Set}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}\PY{p}{;}
+{\color{incolor}In [{\color{incolor}15}]:} \PY{c+c1}{\PYZsh{} Gaussian Random Projection}
+         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{random\PYZus{}projection} \PY{k}{import} \PY{n}{GaussianRandomProjection}
+         
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+         \PY{n}{eps} \PY{o}{=} \PY{k+kc}{None}
+         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
+         
+         \PY{n}{GRP} \PY{o}{=} \PY{n}{GaussianRandomProjection}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
+                                        \PY{n}{eps}\PY{o}{=}\PY{n}{eps}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+         
+         \PY{n}{X\PYZus{}train\PYZus{}GRP} \PY{o}{=} \PY{n}{GRP}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}GRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}GRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+         
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}GRP}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Gaussian Random Projection}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -696,83 +807,69 @@ pixels in the center of the image:
     \end{center}
     { \hspace*{\fill} \\}
     
-    The label separation is much less obvious, almost indistinguishable from
-noise.
-
-    \subsubsection{Incremental PCA}\label{incremental-pca}
-
-For datasets that are too large to fit in memory, we can use PCA
-incrementally. We define small batches of data (manually or
-automatically). This batch-processed PCA is called \textbf{incremental
-PCA}.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}19}]:} \PY{c+c1}{\PYZsh{} Incremental PCA}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{IncrementalPCA}
+{\color{incolor}In [{\color{incolor}16}]:} \PY{n}{X\PYZus{}train\PYZus{}GRP\PYZus{}inverse} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}GRP}\PY{p}{)}\PY{o}{.}\PY{n}{dot}\PY{p}{(}\PY{n}{GRP}\PY{o}{.}\PY{n}{components\PYZus{}}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}GRP\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}GRP\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                            \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{784}
-         \PY{n}{batch\PYZus{}size} \PY{o}{=} \PY{k+kc}{None}
-         
-         \PY{n}{incrementalPCA} \PY{o}{=} \PY{n}{IncrementalPCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
-                                         \PY{n}{batch\PYZus{}size}\PY{o}{=}\PY{n}{batch\PYZus{}size}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}incrementalPCA} \PY{o}{=} \PY{n}{incrementalPCA}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}incrementalPCA} \PY{o}{=} \PYZbs{}
-             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}incrementalPCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}incrementalPCA} \PY{o}{=} \PY{n}{incrementalPCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}incrementalPCA} \PY{o}{=} \PYZbs{}
-             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}incrementalPCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}incrementalPCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Incremental PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{anomalyScoresGRP} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}GRP\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresGRP}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_31_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_29_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Sparse PCA}\label{sparse-pca}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_29_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    These results are not good enough and Gaussian random projection is not
+a suitable candidate for the final solution.
 
-The regular PCA looks for linear combinations of all the input variables
-and reduced the original space as densely as possible.
+    \subsection{Sparse Random Projection Anomaly
+Detection}\label{sparse-random-projection-anomaly-detection}
 
-For some machine learning algorithms, some degree of sparsity may be
-preferred. There is a version of PCA that controls the sparsity using
-the parameter \texttt{alpha}: \textbf{sparse PCA}.
-
-The sparse PCA searches for linear combinations in just some of the
-input variables. The original feature space is reduced not as densely
-ans with normal PCA.
-
-Sparse PCA runs more slowly than the regular. So we train it only on the
-first 10000 samples because we only need to demonstrate it.
+Now, let's try sparse random projection for our task. We will set the
+desired number of parameters and will have to implement our own inverse
+transformation.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}20}]:} \PY{c+c1}{\PYZsh{} Sparse PCA}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{SparsePCA}
+{\color{incolor}In [{\color{incolor}17}]:} \PY{c+c1}{\PYZsh{} Sparse Random Projection}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{100}
-         \PY{n}{alpha} \PY{o}{=} \PY{l+m+mf}{0.0001}
+         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{random\PYZus{}projection} \PY{k}{import} \PY{n}{SparseRandomProjection}
+         
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+         \PY{n}{density} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{auto}\PY{l+s+s1}{\PYZsq{}}
+         \PY{n}{eps} \PY{o}{=} \PY{o}{.}\PY{l+m+mi}{01}
+         \PY{n}{dense\PYZus{}output} \PY{o}{=} \PY{k+kc}{True}
          \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}
          
-         \PY{n}{sparsePCA} \PY{o}{=} \PY{n}{SparsePCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
-                         \PY{n}{alpha}\PY{o}{=}\PY{n}{alpha}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{)}
+         \PY{n}{SRP} \PY{o}{=} \PY{n}{SparseRandomProjection}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
+                 \PY{n}{density}\PY{o}{=}\PY{n}{density}\PY{p}{,} \PY{n}{eps}\PY{o}{=}\PY{n}{eps}\PY{p}{,} \PY{n}{dense\PYZus{}output}\PY{o}{=}\PY{n}{dense\PYZus{}output}\PY{p}{,} \PYZbs{}
+                                         \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
          
-         \PY{n}{sparsePCA}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{10000}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}sparsePCA} \PY{o}{=} \PY{n}{sparsePCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}sparsePCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}sparsePCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}SRP} \PY{o}{=} \PY{n}{SRP}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}SRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}SRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{X\PYZus{}validation\PYZus{}sparsePCA} \PY{o}{=} \PY{n}{sparsePCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}sparsePCA} \PY{o}{=} \PYZbs{}
-             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}sparsePCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}SRP}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Sparse Random Projection}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_32_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}18}]:} \PY{n}{X\PYZus{}train\PYZus{}SRP\PYZus{}inverse} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}SRP}\PY{p}{)}\PY{o}{.}\PY{n}{dot}\PY{p}{(}\PY{n}{SRP}\PY{o}{.}\PY{n}{components\PYZus{}}\PY{o}{.}\PY{n}{todense}\PY{p}{(}\PY{p}{)}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}SRP\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}SRP\PYZus{}inverse}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}sparsePCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Sparse PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{anomalyScoresSRP} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}SRP\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresSRP}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -781,92 +878,81 @@ first 10000 samples because we only need to demonstrate it.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Kernel PCA}\label{kernel-pca}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_33_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    Another set of poor results. We turn sparse random projection down.
 
-Normaly PCA, incremental PCA, sparse PCA linearly project datapoints
-into a lower dimensional space. In case when data is not linearly
-separable, we need a non-linear projection. Kernel PCA runs a non-linear
-function that computes similarity between two points. Kernel PCA maps
-the implicit feature space where the majority of the data points lie and
-creates this feature space in a much lower number of dimensions.
+    \subsection{Nonlinear Anomaly
+Detection}\label{nonlinear-anomaly-detection}
 
-For a kernel PCA we need to specify the number of components, a kernel
-function, the kernel coefficient (\emph{gamma}). The most popular kernel
-is \textbf{radial basis function} kernel (RBF).
+Until now we have tried several methods based on linear dimensionality
+reduction: normal PCA, sparse PCA, Gaussian random projection and sparse
+random projection. We also tried a non-linear method: kernel PCA. Out of
+those the best results were given by PCA.
+
+The non-linear (manifold learning) methods that are available as
+open-source run very slowly, so we will have to skip them and try the
+non-distance methods.
+
+\subsection{Dictionary Learning Anomaly
+Detection}\label{dictionary-learning-anomaly-detection}
+
+Recall that with dictionary learning the algorithm creates a sparse
+representation of the original data in a form of atom vectors in a
+dictionary. We can use these atom vectors to reconstruct the original
+dataset.
+
+For the dimensionality reduction, we need to learn an undercomplete
+dictionary. In our case, we will generate 28 vectors. We will feed the
+learning algorithm in 10 batches each consisting of 200 samples.
+
+We will have to use our own inverse transformation function.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}22}]:} \PY{c+c1}{\PYZsh{} KErnel PCA}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{KernelPCA}
+{\color{incolor}In [{\color{incolor}19}]:} \PY{c+c1}{\PYZsh{} Mini\PYZhy{}batch dictionary learning}
+         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{MiniBatchDictionaryLearning}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{100}
-         \PY{n}{kernel} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{rbf}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{gamma} \PY{o}{=} \PY{k+kc}{None}
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{28}
+         \PY{n}{alpha} \PY{o}{=} \PY{l+m+mi}{1}
+         \PY{n}{batch\PYZus{}size} \PY{o}{=} \PY{l+m+mi}{200}
+         \PY{n}{n\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{10}
          \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
          
-         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{l+m+mi}{1}
+         \PY{n}{miniBatchDictLearning} \PY{o}{=} \PY{n}{MiniBatchDictionaryLearning}\PY{p}{(} \PYZbs{}
+             \PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{n}{alpha}\PY{p}{,} \PY{n}{batch\PYZus{}size}\PY{o}{=}\PY{n}{batch\PYZus{}size}\PY{p}{,} \PYZbs{}
+             \PY{n}{n\PYZus{}iter}\PY{o}{=}\PY{n}{n\PYZus{}iter}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
          
-         \PY{n}{kernelPCA} \PY{o}{=} \PY{n}{KernelPCA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{kernel}\PY{o}{=}\PY{n}{kernel}\PY{p}{,}\PYZbs{}
-                              \PY{n}{gamma}\PY{o}{=}\PY{n}{gamma}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+         \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning} \PY{o}{=} \PYZbs{}
+             \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning} \PY{o}{=} \PYZbs{}
+             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{10000}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{kernelPCA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}kernelPCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}kernelPCA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Kernel PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PYZbs{}
+                     \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Mini\PYZhy{}batch Dictionary Learning}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_35_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_36_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    The separation we see in the scatter plot for the kernel PCA does not
-differ much from the one generated by the normal PCA. The use of kernel
-PCA in this case does not offer much improvement.
-
-\subsection{Singular Value
-Decomposition}\label{singular-value-decomposition}
-
-The idea behind the SVD is to reduce the rank of the original matrix by
-learning the underlying structure of the data and building a matrix of a
-smaller rank, This way it is possible to recreate the original matrix by
-using a linear combination of some of the vectors in the smaller rank
-matrix.
-
-To generate a smaller rank matrix, SVD keeps the vectors in the original
-matrix that have the most information (highest singular value). This
-way, the smaller matrix will contain the most important elements of the
-original feature space.
-
-Compare this to the PCA. PCA uses the eigen-values decomposition of the
-covariance matrix to perform dimensionality reduction. SVD uses the
-singular value decomposition. Calculating PCA involves performing SVD.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}26}]:} \PY{c+c1}{\PYZsh{} Singular Value Decomposition}
+{\color{incolor}In [{\color{incolor}20}]:} \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning\PYZus{}inverse} \PY{o}{=} \PYZbs{}
+             \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning}\PY{p}{)}\PY{o}{.} \PYZbs{}
+             \PY{n}{dot}\PY{p}{(}\PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{components\PYZus{}}\PY{p}{)}
          
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{TruncatedSVD}
+         \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning\PYZus{}inverse} \PY{o}{=} \PYZbs{}
+             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                          \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{200}
-         \PY{n}{algorithm} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{randomized}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{n\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{5}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         
-         \PY{n}{svd} \PY{o}{=} \PY{n}{TruncatedSVD}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{algorithm}\PY{o}{=}\PY{n}{algorithm}\PY{p}{,}\PYZbs{}
-                           \PY{n}{n\PYZus{}iter}\PY{o}{=}\PY{n}{n\PYZus{}iter}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}svd} \PY{o}{=} \PY{n}{svd}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}svd} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}svd}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}svd} \PY{o}{=} \PY{n}{svd}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}svd} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}svd}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}svd}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Singular Value Decomposition}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{anomalyScoresMiniBatchDictLearning} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PYZbs{}
+             \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresMiniBatchDictLearning}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -875,84 +961,52 @@ singular value decomposition. Calculating PCA involves performing SVD.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Random Projection}\label{random-projection}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_37_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    The results from the dictionary learning are much better than from
+random projections but still are worse than those of PCA.
 
-Dimentionality reduction can be achieved by using a technique called
-random projection. This is based on the \emph{Johnson-Lindenstrauss
-lemma}. According to it, points in a high-dimensional space can be
-embedded into a much lower-dimensional space so that distances between
-the points are nearly preserved.
+    \subsection{ICA Anomaly Detection}\label{ica-anomaly-detection}
 
-\subsubsection{Gaussian Random
-Projection}\label{gaussian-random-projection}
-
-There are two versions of random projection: the \textbf{Gaussian random
-projection} and the \textbf{sparse random projection}.
-
-In Gaussian random projection, we can set the number of the target
-components or we can use the hyperparameter called \emph{eps}. This
-parameter controls the quality of the transformation and its smaller
-values will generate a higher number of dimensions.
+Now, let's try the independent component analysis (ICA) for fraud
+detection. We will need to specify the number of components, which we
+set to 27. ICA has its own \texttt{inverse\_transform} function.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}28}]:} \PY{c+c1}{\PYZsh{} Gaussian random projection}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{random\PYZus{}projection} \PY{k}{import} \PY{n}{GaussianRandomProjection}
+{\color{incolor}In [{\color{incolor}21}]:} \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{FastICA}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{auto}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{eps} \PY{o}{=} \PY{l+m+mf}{0.5}
+         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{27}
+         \PY{n}{algorithm} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{parallel}\PY{l+s+s1}{\PYZsq{}}
+         \PY{n}{whiten} \PY{o}{=} \PY{k+kc}{True}
+         \PY{n}{max\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{200}
          \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
          
-         \PY{n}{GRP} \PY{o}{=} \PY{n}{GaussianRandomProjection}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{eps}\PY{o}{=}\PY{n}{eps}\PY{p}{,}\PYZbs{}
-                                       \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
+         \PY{n}{fastICA} \PY{o}{=} \PY{n}{FastICA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PYZbs{}
+             \PY{n}{algorithm}\PY{o}{=}\PY{n}{algorithm}\PY{p}{,} \PY{n}{whiten}\PY{o}{=}\PY{n}{whiten}\PY{p}{,} \PY{n}{max\PYZus{}iter}\PY{o}{=}\PY{n}{max\PYZus{}iter}\PY{p}{,} \PYZbs{}
+             \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
          
-         \PY{n}{X\PYZus{}train\PYZus{}GRP} \PY{o}{=} \PY{n}{GRP}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}GRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}GRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}fastICA} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}fastICA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}fastICA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{X\PYZus{}validation\PYZus{}GRP} \PY{o}{=} \PY{n}{GRP}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}GRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}GRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}fastICA\PYZus{}inverse} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}fastICA}\PY{p}{)}
+         \PY{n}{X\PYZus{}train\PYZus{}fastICA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}fastICA\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                                \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}GRP}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Gaussian Random Projection}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}fastICA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Independent Component Analysis}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_39_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_40_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    The scatter plot for the Gaussian random projection differs from those
-produced by PCA. This is because random projection is an entirely
-different type of dimensionality reduction.
-
-\subsubsection{Sparse Random Projection}\label{sparse-random-projection}
-
-Just as there is a sparse version of PCA, there is a sparse version for
-random projection. It retains some degree of sparsity in the transformed
-dataset and is generally more efficient. It transforms data faster than
-the Gaussian random projection.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}29}]:} \PY{c+c1}{\PYZsh{}Sparse Random Projection}
-         
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{random\PYZus{}projection} \PY{k}{import} \PY{n}{SparseRandomProjection}
-         
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{auto}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{density} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{auto}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{eps} \PY{o}{=} \PY{l+m+mf}{0.5}
-         \PY{n}{dense\PYZus{}output} \PY{o}{=} \PY{k+kc}{False}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{SRP} \PY{o}{=} \PY{n}{SparseRandomProjection}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{density}\PY{o}{=}\PY{n}{density}\PY{p}{,}\PYZbs{}
-                                     \PY{n}{eps}\PY{o}{=}\PY{n}{eps}\PY{p}{,} \PY{n}{dense\PYZus{}output}\PY{o}{=}\PY{n}{dense\PYZus{}output}\PY{p}{,}\PYZbs{}
-                                     \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}SRP} \PY{o}{=} \PY{n}{SRP}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}SRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}SRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}SRP} \PY{o}{=} \PY{n}{SRP}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}SRP} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}SRP}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}SRP}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Sparse Random Projection}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}22}]:} \PY{n}{anomalyScoresFastICA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{,} \PY{n}{X\PYZus{}train\PYZus{}fastICA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}train}\PY{p}{,} \PY{n}{anomalyScoresFastICA}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -961,38 +1015,51 @@ the Gaussian random projection.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Isomap}\label{isomap}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_41_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    These results are close to those of the normal PCA. The detecting fraud
+using ICA is a plausible alternative to PCA.
 
-Besides methods that use linear projections, there is a family on
-non-linear methods. Thise are known as \textbf{manifold learning}.
+\subsection{Fraud Detection of the Test
+Set}\label{fraud-detection-of-the-test-set}
 
-The basic form of manifold learning is \textbf{Isomap} (\emph{isometric
-mapping}). Similar to Kernel PCA, Isomap learns a new low-dimensional
-embedding of the original feature set by calculating pairwise distances
-of all points, where the distance is \textbf{curved} or \textbf{geodesic
-distance} instead of Euclidean distance.
+Now, it is time to evaluate the fraud detection solution of the test set
+that contains data never seen before by the algorithms. We evaluate the
+three best solutions:
+
+\begin{itemize}
+\tightlist
+\item
+  normal PCA
+\item
+  ICA
+\item
+  dictionary learning
+\end{itemize}
+
+\subsubsection{Normal PCA and the Test
+Set}\label{normal-pca-and-the-test-set}
+
+We will use the PCA embedding that the PCA algorithm has learned from
+the training set and use it to transform the test set. Then, we will use
+the inverse transformation o recreate the original dimensions of the
+test set.
+
+By comparing the original test set and the reconstructed version we can
+calculate the anomaly scores:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}31}]:} \PY{c+c1}{\PYZsh{} Isomap}
+{\color{incolor}In [{\color{incolor}23}]:} \PY{n}{X\PYZus{}test\PYZus{}PCA} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{)}
+         \PY{n}{X\PYZus{}test\PYZus{}PCA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}PCA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{manifold} \PY{k}{import} \PY{n}{Isomap}
+         \PY{n}{X\PYZus{}test\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pca}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}PCA}\PY{p}{)}
+         \PY{n}{X\PYZus{}test\PYZus{}PCA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}PCA\PYZus{}inverse}\PY{p}{,}
+                                           \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}neighbors} \PY{o}{=} \PY{l+m+mi}{5}
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{10}
-         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{l+m+mi}{4}
-         
-         \PY{n}{isomap} \PY{o}{=} \PY{n}{Isomap}\PY{p}{(}\PY{n}{n\PYZus{}neighbors}\PY{o}{=}\PY{n}{n\PYZus{}neighbors}\PY{p}{,} \PYZbs{}
-                         \PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{)}
-         
-         \PY{n}{isomap}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{5000}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}isomap} \PY{o}{=} \PY{n}{isomap}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}isomap} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}isomap}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}isomap} \PY{o}{=} \PY{n}{isomap}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}isomap} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}isomap}\PY{p}{,} \PYZbs{}
-                                            \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}isomap}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Isomap}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}PCA}\PY{p}{,} \PY{n}{y\PYZus{}test}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{PCA}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -1001,75 +1068,40 @@ distance} instead of Euclidean distance.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Multidimensional Scaling}\label{multidimensional-scaling}
-
-Multidimensional Scaling learns the similarity between points and uses
-this similarity to build a lower-dimensional space.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}34}]:} \PY{c+c1}{\PYZsh{} Multidimensional Scaling}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{manifold} \PY{k}{import} \PY{n}{MDS}
-         
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{2}
-         \PY{n}{n\PYZus{}init} \PY{o}{=} \PY{l+m+mi}{12}
-         \PY{n}{max\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{1200}
-         \PY{n}{metric} \PY{o}{=} \PY{k+kc}{True}
-         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{l+m+mi}{4}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{mds} \PY{o}{=} \PY{n}{MDS}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{n\PYZus{}init}\PY{o}{=}\PY{n}{n\PYZus{}init}\PY{p}{,} \PY{n}{max\PYZus{}iter}\PY{o}{=}\PY{n}{max\PYZus{}iter}\PY{p}{,} \PYZbs{}
-                   \PY{n}{metric}\PY{o}{=}\PY{n}{metric}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}mds} \PY{o}{=} \PY{n}{mds}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1000}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}mds} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}mds}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{:}\PY{l+m+mi}{1001}\PY{p}{]}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}mds}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Multidimensional Scaling}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}24}]:} \PY{n}{anomalyScoresPCA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{,} \PY{n}{X\PYZus{}test\PYZus{}PCA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}test}\PY{p}{,} \PY{n}{anomalyScoresPCA}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
-    \begin{Verbatim}[commandchars=\\\{\}]
-C:\textbackslash{}ProgramData\textbackslash{}Anaconda3\textbackslash{}lib\textbackslash{}site-packages\textbackslash{}sklearn\textbackslash{}metrics\textbackslash{}pairwise.py:257: RuntimeWarning: invalid value encountered in sqrt
-  return distances if squared else np.sqrt(distances, out=distances)
-
-    \end{Verbatim}
-
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_45_1.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_44_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Locally Linear Embedding}\label{locally-linear-embedding}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_44_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    The results are very good: we can catch 80\% of fraud with 80\%
+precision - all without using any labels.
 
-Locally Linear Embedding preserves the distances between pojnts in local
-neighborhoods as it projects data to a lower-dimensional space. LLE
-discovers non-linear structure in the original, high-dimensional data by
-segmenting the data into smaller components (that is, neighborhoods of
-points) and modelling each components as a linear embedding.
+    \subsubsection{ICA Anomaly Detection of the Test
+Set}\label{ica-anomaly-detection-of-the-test-set}
+
+Our next evaluation is done for the ICA solution:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}35}]:} \PY{c+c1}{\PYZsh{} Locally Linear Embeddings}
+{\color{incolor}In [{\color{incolor}25}]:} \PY{c+c1}{\PYZsh{} Independent Component Analysis on Test Set}
+         \PY{n}{X\PYZus{}test\PYZus{}fastICA} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{)}
+         \PY{n}{X\PYZus{}test\PYZus{}fastICA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}fastICA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{manifold} \PY{k}{import} \PY{n}{LocallyLinearEmbedding}
+         \PY{n}{X\PYZus{}test\PYZus{}fastICA\PYZus{}inverse} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{inverse\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}fastICA}\PY{p}{)}
+         \PY{n}{X\PYZus{}test\PYZus{}fastICA\PYZus{}inverse} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}fastICA\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                                               \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}neighbors} \PY{o}{=} \PY{l+m+mi}{10}
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{2}
-         \PY{n}{method} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{modified}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{n\PYZus{}jobs} \PY{o}{=} \PY{l+m+mi}{4}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{lle} \PY{o}{=} \PY{n}{LocallyLinearEmbedding}\PY{p}{(}\PY{n}{n\PYZus{}neighbors}\PY{o}{=}\PY{n}{n\PYZus{}neighbors}\PY{p}{,} \PYZbs{}
-                                      \PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{method}\PY{o}{=}\PY{n}{method}\PY{p}{,}\PYZbs{}
-                                     \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{,} \PY{n}{n\PYZus{}jobs}\PY{o}{=}\PY{n}{n\PYZus{}jobs}\PY{p}{)}
-         
-         \PY{n}{lle}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{5000}\PY{p}{,}\PY{p}{:}\PY{p}{]}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}lle} \PY{o}{=} \PY{n}{lle}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}lle} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}lle}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}lle} \PY{o}{=} \PY{n}{lle}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}lle} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}lle}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Locally Linear Embedding}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}fastICA}\PY{p}{,} \PY{n}{y\PYZus{}test}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Independent Component Analysis}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -1078,108 +1110,56 @@ points) and modelling each components as a linear embedding.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{t-Distributed Stochastic Neighbor
-Embedding}\label{t-distributed-stochastic-neighbor-embedding}
-
-Another nonlinear dimensionality reduction method is \emph{t-distributed
-Stochastic Neighbor Embedding} (\emph{t-SNE}). It is used for
-visualisation of high-dimensional data. t\_SNE models each
-high-dimensional point in a two- or three-dimensional space. Points that
-are similar are modelled close to each other, while dissimilar points
-are modelled father away.
-
-t-SNE constructs two probability distributions, one over pairs of points
-in the original space, and another over pair of points in the
-low-dimensional space. In effect, similar points will have high
-probability, and dissimilar points will have low probability.
-Specifically, t-SNE minimized the \emph{Killback-Leibler divergence}
-between two probability distributions.
-
-In the real-world applications of t-SNE it is best to apply some form of
-dimensionality reduction first (e.g., PCA) to reduce the number of
-dimensions before applying t-SNE. This will reduce the noise in features
-and speed up the computation.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}37}]:} \PY{c+c1}{\PYZsh{} t\PYZhy{}SNE}
-         
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{manifold} \PY{k}{import} \PY{n}{TSNE}
-         
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{2}
-         \PY{n}{learning\PYZus{}rate} \PY{o}{=} \PY{l+m+mi}{300}
-         \PY{n}{perplexity} \PY{o}{=} \PY{l+m+mi}{30}
-         \PY{n}{early\PYZus{}exaggeration} \PY{o}{=} \PY{l+m+mi}{12}
-         \PY{n}{init} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{random}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{tSNE} \PY{o}{=} \PY{n}{TSNE}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{learning\PYZus{}rate}\PY{o}{=}\PY{n}{learning\PYZus{}rate}\PY{p}{,}\PYZbs{}
-                    \PY{n}{perplexity}\PY{o}{=}\PY{n}{perplexity}\PY{p}{,} \PY{n}{early\PYZus{}exaggeration}\PY{o}{=}\PY{n}{early\PYZus{}exaggeration}\PY{p}{,}\PYZbs{}
-                    \PY{n}{init}\PY{o}{=}\PY{n}{init}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}tSNE} \PY{o}{=} \PY{n}{tSNE}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}PCA}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{5000}\PY{p}{,}\PY{p}{:}\PY{l+m+mi}{9}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}tSNE} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}tSNE}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{5001}\PY{p}{]}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}tSNE}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{t\PYZhy{}SNE}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}26}]:} \PY{n}{anomalyScoresFastICA} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{,} \PY{n}{X\PYZus{}test\PYZus{}fastICA\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}test}\PY{p}{,} \PY{n}{anomalyScoresFastICA}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_49_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_48_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    \section{Other Dimensionality Reduction
-Methods}\label{other-dimensionality-reduction-methods}
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_48_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    We get the same good results as with the normal PCA.
 
-There are methods that do not rely on any sort of distance or geometric
-metric.
+\subsubsection{Dictionary Learning Anomaly Detecion of the Test
+Set}\label{dictionary-learning-anomaly-detecion-of-the-test-set}
 
-\subsection{Dictionary Learning}\label{dictionary-learning}
-
-\textbf{Dictionary Learning} is a method that learns a sparse
-representation of the original data. The resulting matrix is called
-\emph{dictionary} and vectors that populate it are called \emph{atoms}.
-These atoms are binary vectors (i.e., with values of ones and zeros).
-Each original feature can be reconstructed as a weighted sum of these
-atoms.
-
-If we have \emph{d} features in the original dataset and \emph{n} atoms
-in the dictionary, we will have an \emph{undercomplete} dictionary when
-\(n < d\) and an \emph{overcomplete} dictionary when \(n>d\). With an
-undercomplete dictionary we achieve dimensionality reduction.
-
-To represent images in a two-dimensional scatterplot, we will have to
-learn a very dense dictionary. In practice, we would use a sparser
-version.
+Finally, we will test the dictionary learning solution:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}38}]:} \PY{c+c1}{\PYZsh{} Mini\PYZhy{}batch dictionary learning}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{MiniBatchDictionaryLearning}
+{\color{incolor}In [{\color{incolor}27}]:} \PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning} \PY{o}{=} \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{)}
+         \PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning} \PY{o}{=} \PYZbs{}
+             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
          
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{50}
-         \PY{n}{alpha} \PY{o}{=} \PY{l+m+mi}{1}
-         \PY{n}{batch\PYZus{}size} \PY{o}{=} \PY{l+m+mi}{200}
-         \PY{n}{n\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{25}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{miniBatchDictLearning} \PY{o}{=} \PY{n}{MiniBatchDictionaryLearning}\PY{p}{(} \PYZbs{}
-                                 \PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{n}{alpha}\PY{p}{,} \PYZbs{}
-                                 \PY{n}{batch\PYZus{}size}\PY{o}{=}\PY{n}{batch\PYZus{}size}\PY{p}{,} \PY{n}{n\PYZus{}iter}\PY{o}{=}\PY{n}{n\PYZus{}iter}\PY{p}{,} \PYZbs{}
-                                 \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{fit}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{o}{.}\PY{n}{loc}\PY{p}{[}\PY{p}{:}\PY{p}{,}\PY{p}{:}\PY{l+m+mi}{10000}\PY{p}{]}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning} \PY{o}{=} \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(} \PYZbs{}
-             \PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}miniBatchDictLearning} \PY{o}{=} \PYZbs{}
-             \PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}miniBatchDictLearning} \PY{o}{=} \PYZbs{}
-             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}miniBatchDictLearning}\PY{p}{,} \PYZbs{}
-             \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PYZbs{}
+         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning}\PY{p}{,} \PY{n}{y\PYZus{}test}\PY{p}{,} \PYZbs{}
                      \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Mini\PYZhy{}batch Dictionary Learning}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_50_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}28}]:} \PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning\PYZus{}inverse} \PY{o}{=} \PYZbs{}
+             \PY{n}{np}\PY{o}{.}\PY{n}{array}\PY{p}{(}\PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning}\PY{p}{)}\PY{o}{.} \PYZbs{}
+             \PY{n}{dot}\PY{p}{(}\PY{n}{miniBatchDictLearning}\PY{o}{.}\PY{n}{components\PYZus{}}\PY{p}{)}
+         
+         \PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning\PYZus{}inverse} \PY{o}{=} \PYZbs{}
+             \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning\PYZus{}inverse}\PY{p}{,} \PYZbs{}
+                          \PY{n}{index}\PY{o}{=}\PY{n}{X\PYZus{}test}\PY{o}{.}\PY{n}{index}\PY{p}{)}
+         
+         \PY{n}{anomalyScoresMiniBatchDictLearning} \PY{o}{=} \PY{n}{anomalyScores}\PY{p}{(}\PY{n}{X\PYZus{}test}\PY{p}{,} \PYZbs{}
+             \PY{n}{X\PYZus{}test\PYZus{}miniBatchDictLearning\PYZus{}inverse}\PY{p}{)}
+         \PY{n}{preds} \PY{o}{=} \PY{n}{plotResults}\PY{p}{(}\PY{n}{y\PYZus{}test}\PY{p}{,} \PY{n}{anomalyScoresMiniBatchDictLearning}\PY{p}{,} \PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -1188,53 +1168,25 @@ version.
     \end{center}
     { \hspace*{\fill} \\}
     
-    \subsection{Independent Component
-Analysis}\label{independent-component-analysis}
-
-One problem with unlabeled data is that many individual signals are
-blended in together. By applying independent component analysis, we
-separate these signals into their individual components. We can then
-reconstruct the originaol features by adding together some combinations
-of the individual components. ICA is commonly used in signal processing
-tasks such as, identifying individual voices in a busy coffeehouse.
-
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}39}]:} \PY{c+c1}{\PYZsh{} Independent Component Analysis}
-         \PY{k+kn}{from} \PY{n+nn}{sklearn}\PY{n+nn}{.}\PY{n+nn}{decomposition} \PY{k}{import} \PY{n}{FastICA}
-         
-         \PY{n}{n\PYZus{}components} \PY{o}{=} \PY{l+m+mi}{25}
-         \PY{n}{algorithm} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{parallel}\PY{l+s+s1}{\PYZsq{}}
-         \PY{n}{whiten} \PY{o}{=} \PY{k+kc}{True}
-         \PY{n}{max\PYZus{}iter} \PY{o}{=} \PY{l+m+mi}{100}
-         \PY{n}{random\PYZus{}state} \PY{o}{=} \PY{l+m+mi}{2018}
-         
-         \PY{n}{fastICA} \PY{o}{=} \PY{n}{FastICA}\PY{p}{(}\PY{n}{n\PYZus{}components}\PY{o}{=}\PY{n}{n\PYZus{}components}\PY{p}{,} \PY{n}{algorithm}\PY{o}{=}\PY{n}{algorithm}\PY{p}{,} \PYZbs{}
-                           \PY{n}{whiten}\PY{o}{=}\PY{n}{whiten}\PY{p}{,} \PY{n}{max\PYZus{}iter}\PY{o}{=}\PY{n}{max\PYZus{}iter}\PY{p}{,} \PY{n}{random\PYZus{}state}\PY{o}{=}\PY{n}{random\PYZus{}state}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}train\PYZus{}fastICA} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{fit\PYZus{}transform}\PY{p}{(}\PY{n}{X\PYZus{}train}\PY{p}{)}
-         \PY{n}{X\PYZus{}train\PYZus{}fastICA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}train\PYZus{}fastICA}\PY{p}{,} \PY{n}{index}\PY{o}{=}\PY{n}{train\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{X\PYZus{}validation\PYZus{}fastICA} \PY{o}{=} \PY{n}{fastICA}\PY{o}{.}\PY{n}{transform}\PY{p}{(}\PY{n}{X\PYZus{}validation}\PY{p}{)}
-         \PY{n}{X\PYZus{}validation\PYZus{}fastICA} \PY{o}{=} \PY{n}{pd}\PY{o}{.}\PY{n}{DataFrame}\PY{p}{(}\PY{n}{data}\PY{o}{=}\PY{n}{X\PYZus{}validation\PYZus{}fastICA}\PY{p}{,} \PYZbs{}
-                                             \PY{n}{index}\PY{o}{=}\PY{n}{validation\PYZus{}index}\PY{p}{)}
-         
-         \PY{n}{scatterPlot}\PY{p}{(}\PY{n}{X\PYZus{}train\PYZus{}fastICA}\PY{p}{,} \PY{n}{y\PYZus{}train}\PY{p}{,} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Independent Component Analysis}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
-\end{Verbatim}
-
-
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_53_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_51_1.png}
     \end{center}
     { \hspace*{\fill} \\}
     
-    \section{Conclusion}\label{conclusion}
+    The results are below those of the previous two solutions: we can catch
+80\% of fraud but only with 20\% precision.
 
-In this chapter, we have looked into linear and nonlinear methods of
-dimensionality reduction. This methods allow us to extract the most
-meaningful part of data and represent the original dataset with a lower
-number of features (dimensions). This is achieved without using any
-labeled data. The result allows to meaningfully separate digits with
-only two dimensions.
+    \subsection{Conclusion}\label{conclusion}
+
+    In this chapter, we've built fraud detection solutions using algorithms
+that did not require labeled data to train. By using this kind of
+unsupervised learning we were able to find two algorithms that performed
+the best: normal PCA and ICA. While their results (80\% recall with 80\%
+precision) were worse than those of the best-performing supervised
+learning algorithms from the previous chapter (90\% recall at 80\%
+precision), these unsupervised learning solutions will perform better on
+data with new patterns of fraud where the supervised learning solutions
+will see their performance worsen over time.
 
 
     % Add a bibliography block to the postdoc
